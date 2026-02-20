@@ -15,12 +15,18 @@ fi
 
 cd /workspace/Hunyuan3D-2.1
 
-# --- Build CUDA extensions on first run (native aarch64, fails under QEMU) ---
+# --- Build native extensions on first run (aarch64, fails under QEMU) ---
+
+# pymeshlab (mesh postprocessing — required by hy3dshape)
+if ! python -c "import pymeshlab" 2>/dev/null; then
+    echo "[hunyuan3d-spark] Installing pymeshlab..."
+    pip install --no-cache-dir pymeshlab || echo "[hunyuan3d-spark] Warning: pymeshlab install failed"
+fi
 
 # xatlas (UV unwrapping)
 if ! python -c "import xatlas" 2>/dev/null; then
     echo "[hunyuan3d-spark] Building xatlas..."
-    pip install --no-cache-dir xatlas==0.0.9 || echo "[hunyuan3d-spark] Warning: xatlas build failed"
+    pip install --no-cache-dir xatlas || echo "[hunyuan3d-spark] Warning: xatlas build failed"
 fi
 
 # custom_rasterizer
