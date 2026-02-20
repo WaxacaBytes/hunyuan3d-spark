@@ -9,21 +9,14 @@ RUN git clone "$HUNYUAN3D_REPO" /workspace/Hunyuan3D-2.1 && \
 
 WORKDIR /workspace/Hunyuan3D-2.1
 
-# Install requirements (filtered for aarch64 + Python 3.10 base image)
-# Removed packages and reasons:
-#   --extra-index-url  Tencent/Aliyun mirrors (not needed, can break resolution)
-#   bpy                Already built from source in base image
-#   cupy               No aarch64 wheels, not required for inference
-#   open3d             No aarch64 wheels, not required for Gradio demo
-#   deepspeed          No aarch64 wheels, not required for inference
-#   pymeshlab          Requires Python >=3.11 (only 2025.7+ on PyPI), base is 3.10
-#   onnxruntime        No aarch64 wheels for this version; rembg can use CPU fallback
-RUN sed -i '/^--extra-index-url/d; /^bpy/d; /^cupy/d; /^open3d/d; /^deepspeed/d; /^pymeshlab/d; /^onnxruntime/d' requirements.txt && \
-    pip install --no-cache-dir -r requirements.txt
+# Use our curated requirements (aarch64 + Python 3.10 compatible)
+# instead of upstream's which pulls packages without aarch64 wheels
+COPY requirements.txt /workspace/requirements-spark.txt
+RUN pip install --no-cache-dir -r /workspace/requirements-spark.txt
 
-# Build CUDA extensions from source (Python 3.10, can't use pre-built cp312 wheels)
-RUN cd hy3dpaint/custom_rasterizer && pip install -e . --no-build-isolation
-RUN cd hy3dpaint/DifferentiableRenderer && bash compile_mesh_painter.sh
+# CUDA extensions (custom_rasterizer, DifferentiableRenderer, xatlas) are
+# built at first run by entrypoint.sh on real aarch64 hardware — they
+# require native compilation and fail under QEMU emulation in CI.
 
 RUN mkdir -p output
 

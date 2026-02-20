@@ -15,7 +15,37 @@ fi
 
 cd /workspace/Hunyuan3D-2.1
 
-# Download ESRGAN weights if not present
+# --- Build CUDA extensions on first run (native aarch64, fails under QEMU) ---
+
+# xatlas (UV unwrapping)
+if ! python -c "import xatlas" 2>/dev/null; then
+    echo "[hunyuan3d-spark] Building xatlas..."
+    pip install --no-cache-dir xatlas==0.0.9 || echo "[hunyuan3d-spark] Warning: xatlas build failed"
+fi
+
+# custom_rasterizer
+if [ -d "hy3dpaint/custom_rasterizer" ] && [ ! -f "hy3dpaint/custom_rasterizer/.built" ]; then
+    echo "[hunyuan3d-spark] Building custom_rasterizer..."
+    cd hy3dpaint/custom_rasterizer
+    pip install -e . --no-build-isolation
+    touch .built
+    cd /workspace/Hunyuan3D-2.1
+else
+    echo "[hunyuan3d-spark] custom_rasterizer already built, skipping."
+fi
+
+# DifferentiableRenderer
+if [ -d "hy3dpaint/DifferentiableRenderer" ] && [ ! -f "hy3dpaint/DifferentiableRenderer/.built" ]; then
+    echo "[hunyuan3d-spark] Compiling DifferentiableRenderer..."
+    cd hy3dpaint/DifferentiableRenderer
+    bash compile_mesh_painter.sh
+    touch .built
+    cd /workspace/Hunyuan3D-2.1
+else
+    echo "[hunyuan3d-spark] DifferentiableRenderer already compiled, skipping."
+fi
+
+# --- Download ESRGAN weights if not present ---
 if [ ! -f "hy3dpaint/ckpt/RealESRGAN_x4plus.pth" ]; then
     echo "[hunyuan3d-spark] Downloading ESRGAN weights..."
     mkdir -p hy3dpaint/ckpt
