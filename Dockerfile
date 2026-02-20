@@ -10,9 +10,15 @@ RUN git clone "$HUNYUAN3D_REPO" /workspace/Hunyuan3D-2.1 && \
 WORKDIR /workspace/Hunyuan3D-2.1
 
 # Install requirements (filtered for aarch64 + Python 3.10 base image)
-# bpy is already built from source in the base image
-# cupy / open3d / deepspeed don't have aarch64 wheels and aren't required
-RUN sed -i '/^--extra-index-url/d; /^bpy/d; /^cupy/d; /^open3d/d; /^deepspeed/d' requirements.txt && \
+# Removed packages and reasons:
+#   --extra-index-url  Tencent/Aliyun mirrors (not needed, can break resolution)
+#   bpy                Already built from source in base image
+#   cupy               No aarch64 wheels, not required for inference
+#   open3d             No aarch64 wheels, not required for Gradio demo
+#   deepspeed          No aarch64 wheels, not required for inference
+#   pymeshlab          Requires Python >=3.11 (only 2025.7+ on PyPI), base is 3.10
+#   onnxruntime        No aarch64 wheels for this version; rembg can use CPU fallback
+RUN sed -i '/^--extra-index-url/d; /^bpy/d; /^cupy/d; /^open3d/d; /^deepspeed/d; /^pymeshlab/d; /^onnxruntime/d' requirements.txt && \
     pip install --no-cache-dir -r requirements.txt
 
 # Build CUDA extensions from source (Python 3.10, can't use pre-built cp312 wheels)
