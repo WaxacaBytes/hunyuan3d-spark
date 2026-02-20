@@ -28,17 +28,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Resolve latest Hunyuan3D release
+      - name: Resolve latest Hunyuan3D commit
         id: hunyuan
         run: |
           set -euo pipefail
-          tag="$(curl -fsSL https://api.github.com/repos/Tencent-Hunyuan/Hunyuan3D-2.1/releases/latest | jq -r '.tag_name')"
-          if [ -z "${tag}" ] || [ "${tag}" = "null" ]; then
-            echo "No release tag found, using main"
-            tag="main"
-          fi
-          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
-          echo "Using Hunyuan3D ref: ${tag}"
+          sha="$(curl -fsSL https://api.github.com/repos/Tencent-Hunyuan/Hunyuan3D-2.1/commits/main | jq -r '.sha[:8]')"
+          echo "ref=main" >> "$GITHUB_OUTPUT"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+          echo "Using Hunyuan3D main @ ${sha}"
 
       - name: Extract Docker metadata
         id: meta
@@ -50,7 +47,7 @@ jobs:
             type=ref,event=branch
             type=ref,event=tag
             type=sha,prefix=sha-
-            type=raw,value=hunyuan3d-${{ steps.hunyuan.outputs.tag }},enable={{is_default_branch}}
+            type=raw,value=hunyuan3d-${{ steps.hunyuan.outputs.sha }},enable={{is_default_branch}}
 
       - name: Decide publish mode
         id: publish
@@ -79,7 +76,7 @@ jobs:
           platforms: linux/arm64
           build-args: |
             HUNYUAN3D_REPO=https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1.git
-            HUNYUAN3D_REF=${{ steps.hunyuan.outputs.tag }}
+            HUNYUAN3D_REF=${{ steps.hunyuan.outputs.ref }}
           push: ${{ steps.publish.outputs.push == 'true' }}
           provenance: false
           tags: ${{ steps.meta.outputs.tags }}
